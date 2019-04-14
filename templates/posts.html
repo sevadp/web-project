@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}Заметки | {{ app_name }}{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+    <h1>Мои заметки</h1>
+</div>
+
+{{ wtf.quick_form(form) }}
+
+{% include "_posts.html" %}
+
+{% endblock %}
