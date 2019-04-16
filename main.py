@@ -3,7 +3,6 @@ from flask_bootstrap import Bootstrap
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, PasswordField, TextAreaField
 from wtforms.validators import DataRequired, EqualTo
-from wtforms import ValidationError
 import os
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -42,9 +41,10 @@ class RegistrationForm(FlaskForm):
     password2 = PasswordField('Подтвердите пароль ещё раз', validators=[DataRequired()])
     submit = SubmitField('Зарегистрироваться')
 
-    def validate_login(self, field):
-        if User.query.filter_by(username=field.data).first():
-            raise ValidationError('Такой пользователь уже существует.')
+    # @staticmethod
+    # def validate_login(self, field):
+    #     if User.query.filter_by(username=field.data).first():
+    #         raise ValidationError('Такой пользователь уже существует.')
 
 
 class PostForm(FlaskForm):
@@ -74,11 +74,12 @@ class User(UserMixin, db.Model):
         return check_password_hash(self.password_hash, password)
     
     def gravatar(self, size=100, default='identicon', rating='g'):
+        # COPY PAST MODULE
         url = 'https://secure.gravatar.com/avatar'
         email = '{}@bookmarks.ru'.format(self.username.lower()).encode('utf-8')
-        hash = hashlib.md5(email).hexdigest()
+        hashs = hashlib.md5(email).hexdigest()
         return '{url}/{hash}?s={size}&d={default}&r={rating}'.format(
-            url=url, hash=hash, size=size, default=default, rating=rating)
+            url=url, hash=hashs, size=size, default=default, rating=rating)
     
     def robohash(self, size=200):
         url = 'https://robohash.org/'
@@ -97,10 +98,12 @@ class Post(db.Model):
 def inject_app_name():
     return dict(app_name="Заметки")
 
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    posts = Post.query.filter_by(author_id=1).order_by(Post.timestamp.desc()).all()
-    return render_template('index.html', posts=posts)
+    postss = Post.query.filter_by(author_id=1).order_by(Post.timestamp.desc()).all()
+    return render_template('index.html', posts=postss)
+
 
 @app.route('/posts', methods=['GET', 'POST'])
 @login_required
@@ -116,13 +119,16 @@ def posts():
     posts = Post.query.filter_by(author_id=current_user.get_id()).order_by(Post.timestamp.desc()).all()
     return render_template('posts.html', form=form, posts=posts)
 
+
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'), 404
 
+
 @app.errorhandler(500)
 def internal_server_error(e):
     return render_template('500.html'), 500
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -135,12 +141,14 @@ def login():
         flash('Неправильный логин или пароль.')
     return render_template('login.html', form=form)
 
+
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
     flash('Вы вышли.')
     return redirect(url_for('index'))
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -153,6 +161,7 @@ def register():
         return redirect(url_for('login'))
     return render_template('register.html', form=form)
 
+
 @app.route('/delete_post/<int:post_id>')
 @login_required
 def delete_post(post_id):
@@ -161,10 +170,16 @@ def delete_post(post_id):
     db.session.commit()
     return redirect(url_for('posts'))
 
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+
 @login_manager.unauthorized_handler
 def unauthorized():
     return render_template('401.html'), 401
+
+
+if __name__ == "__main__":
+    app.run()
