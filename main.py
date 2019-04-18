@@ -14,8 +14,8 @@ from datetime import datetime
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'moy-MEGA-klyu4'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'data.sqlite')
+app.config['SECRET_KEY'] = 'moy-MEGA-klyu4'  # CLUCH
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'data.sqlite')  # SQLITE
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 bootstrap = Bootstrap(app)
@@ -29,15 +29,10 @@ class LoginForm(FlaskForm):
     submit = SubmitField('Войти')
 
 
+# REGISTER
 class RegistrationForm(FlaskForm):
     login = StringField('Логин', validators=[DataRequired()])
-    password = PasswordField(
-        'Пароль', 
-        validators=[
-            DataRequired(), 
-            EqualTo('password2', message='Пароли не совпадают.')
-        ]
-    )
+    password = PasswordField('Пароль', validators=[DataRequired(), EqualTo('password2', message='Пароли не совпадают.')])
     password2 = PasswordField('Подтвердите пароль ещё раз', validators=[DataRequired()])
     submit = SubmitField('Зарегистрироваться')
 
@@ -54,6 +49,7 @@ class PostForm(FlaskForm):
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
+    # bd
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, index=True)
     password_hash = db.Column(db.String(128))
@@ -95,7 +91,7 @@ class Post(db.Model):
 
 
 @app.context_processor
-def inject_app_name():
+def app_name():
     return dict(app_name="Заметки")
 
 
@@ -121,12 +117,12 @@ def posts():
 
 
 @app.errorhandler(404)
-def page_not_found(e):
+def page_ne_nadeno():
     return render_template('404.html'), 404
 
 
 @app.errorhandler(500)
-def internal_server_error(e):
+def internal():
     return render_template('500.html'), 500
 
 
@@ -177,7 +173,7 @@ def load_user(user_id):
 
 
 @login_manager.unauthorized_handler
-def unauthorized():
+def unauth():
     return render_template('401.html'), 401
 
 
