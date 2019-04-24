@@ -1,6 +1,7 @@
 import os
+import hashlib
 from datetime import datetime
-from flask import Flask, render_template, redirect, url_for, flash
+from flask import Flask, render_template, redirect, url_for, flash, abort
 from flask_bootstrap import Bootstrap
 from flask_wtf import FlaskForm
 from flask_sqlalchemy import SQLAlchemy
@@ -71,7 +72,7 @@ class User(UserMixin, db.Model):
     @property
     def password(self):
         raise AttributeError('пароль прочесть нельзя.')
-
+    
     @password.setter
     def password(self, password):
         # Собственно установка пароля.  При регистрации
@@ -101,7 +102,7 @@ class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     body = db.Column(db.Text)
     # время UTC ну лондонское
-    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow())
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'))
 
 
@@ -136,10 +137,15 @@ def posts():
 
 
 @app.errorhandler(404)
-def page_nety(e):
+def page_not_found(e):
     # Если нет страницы, дропает 404 ошибку.
     # Нужен аргумент, но я его не юзаю. А без него краши
     return render_template('404.html'), 404
+
+
+@app.errorhandler(403)
+def forbidden(e):
+    return render_template('403.html'), 403
 
 
 @app.errorhandler(500)
@@ -202,6 +208,27 @@ def delete_post(post_id):
     return redirect(url_for('posts'))
 
 
+@app.route('/edit_post/<int:post_id>', methods=['GET', 'POST'])
+@login_required
+def edit_post(post_id):
+    post = Post.query.get_or_404(post_id)
+
+    if int(current_user.get_id()) != int(post.author_id):
+        abort(403)
+        
+    form = PostForm()
+    
+    if form.validate_on_submit():
+        post.body = form.body.data
+        db.session.add(post)
+        db.session.commit()
+        flash('Запись успешно изменена.')
+        return redirect(url_for('edit_post', post_id=post.id))
+    
+    form.body.data = post.body
+    return render_template('edit_post.html', form=form)
+
+
 @login_manager.user_loader
 def load_user(user_id):
     # подгрузка юзера
@@ -217,3 +244,4 @@ def unauthorized():
 
 if __name__ == "__main__":
     app.run()
+
