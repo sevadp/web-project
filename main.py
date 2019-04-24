@@ -9,6 +9,7 @@ from flask_login import UserMixin, LoginManager, login_user, logout_user, login_
 from werkzeug.security import generate_password_hash, check_password_hash
 from wtforms import StringField, SubmitField, PasswordField, TextAreaField, ValidationError
 from wtforms.validators import DataRequired, EqualTo
+from flask_ckeditor import CKEditor, CKEditorField
 
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -23,6 +24,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 bootstrap = Bootstrap(app)
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
+ckeditor = CKEditor(app)
 
 
 class LoginForm(FlaskForm):
@@ -45,7 +47,7 @@ class RegistrationForm(FlaskForm):
     password2 = PasswordField('Подтвердите пароль ещё раз', validators=[DataRequired()])
     submit = SubmitField('Зарегистрироваться')
 
-    # Проверка валидности логика. валид = правильность
+    # Проверка валидности логика. валид = правильност
     def validate_login(self, field):
         if User.query.filter_by(username=field.data).first():
             raise ValidationError('Такой пользователь уже существует.')
@@ -83,16 +85,17 @@ class User(UserMixin, db.Model):
         # Подтверждение проверки тот ли пароль когда авторизуешься
         return check_password_hash(self.password_hash, password)
     
-    def gravatar(self, size=100):
+    def gravatar(self, size=100, default='identicon', rating='g'):
+        url = 'https://secure.gravatar.com/avatar'
+        email = '{}@bookmarks.ru'.format(self.username.lower()).encode('utf-8')
+        email_hash = hashlib.md5(email).hexdigest()
+        return '{url}/{hash}?s={size}&d={default}&r={rating}'.format(
+            url=url, hash=email_hash, size=size, default=default, rating=rating)
+    
+    def robohash(self, size=200):
         # нужны картинки( робохеш крч ты каждому юзеру свою рандомную аву генеришь, у него там свои
         # методы. но она сохраняется навсегда тк есть индификатор постоянный для юзеров
         # . главное чтобы инет был - а то все падет!
-        url = 'https://robohash.org/'
-        return url + self.username + '?size={}x{}'.format(size, size)
-    
-    def robohash(self, size=200):
-        # Аналогично.. Каждый типо у нас робот в системе поэтому для каждого своя картинка. НО ОН ЕЩЕ
-        # После авторизации показывается у постов.
         url = 'https://robohash.org/'
         return url + self.username + '?size={}x{}'.format(size, size)
 
@@ -244,4 +247,3 @@ def unauthorized():
 
 if __name__ == "__main__":
     app.run()
-

@@ -7,7 +7,7 @@
           </div>
           <div class="post-content">
               <div class="post-date">{{ post.timestamp.strftime('%d.%m.%Y %H:%M:%S') }}</div>
-              <div class="post-body">{{ post.body }}</div>
+              <div class="post-body">{{ post.body|safe }}</div>
               <div class="post-footer">
                   {% if current_user.is_authenticated 
                       and request.url_rule.endpoint != 'index' %}
