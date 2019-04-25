@@ -1,6 +1,10 @@
 .profile-thumbnail {
     position: absolute;
 }
+.profile-header {
+    min-height: 260px;
+    margin-left: 280px;
+}
 ul.posts {
     list-style-type: none;
     padding: 0px;
@@ -35,4 +39,10 @@ div.post-footer a:visited,
 div.post-footer a:link, 
 div.post-footer a:active {
     text-decoration: none;
+}
+.edit-form #body {
+    min-height: 40vh;
+}
+#edit-profile-form {
+    display: none;
 }

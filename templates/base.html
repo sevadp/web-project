@@ -21,9 +21,9 @@
          <a class="navbar-brand" href="/">Главная</a>
       </div>
       <div class="navbar-collapse collapse">
-         <ul class="nav navbar-nav">
+        <ul class="nav navbar-nav">
             <li><a href="{{ url_for('posts') }}">Заметки</a></li>
-         </ul>
+        </ul>
         <ul class="nav navbar-nav navbar-right">
             {% if current_user.is_authenticated %}
             <li class="dropdown">
@@ -34,6 +34,9 @@
                 <ul class="dropdown-menu">
                     <li>
                         <a href="{{ url_for('logout') }}">Выйти</a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('user', user_id=current_user.get_id()) }}">Профиль</a>
                     </li>
                 </ul>
             </li>

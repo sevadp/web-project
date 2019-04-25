@@ -9,18 +9,20 @@ from flask_login import UserMixin, LoginManager, login_user, logout_user, login_
 from werkzeug.security import generate_password_hash, check_password_hash
 from wtforms import StringField, SubmitField, PasswordField, TextAreaField, ValidationError
 from wtforms.validators import DataRequired, EqualTo
-from flask_ckeditor import CKEditor, CKEditorField
+from flask_ckeditor import CKEditor
 
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
 # Настройка приложения и подключение бд от фласка sqlite
+
 app.config['SECRET_KEY'] = 'moy-MEGA-klyu4'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'data.sqlite')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Бут страп тоже от фласка. + обозначение регистрация объектов по классам ниже
+
 bootstrap = Bootstrap(app)
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
@@ -29,6 +31,7 @@ ckeditor = CKEditor(app)
 
 class LoginForm(FlaskForm):
     # Форма ввода. Лог + пароль. Проверка на правильность лог пароля от приложений фласка))))
+
     login = StringField('Логин', validators=[DataRequired()])
     password = PasswordField('Пароль', validators=[DataRequired()])
     submit = SubmitField('Войти')
@@ -36,6 +39,7 @@ class LoginForm(FlaskForm):
 
 class RegistrationForm(FlaskForm):
     # Регистрация + валид от фласка. И подтверждение пароля.
+
     login = StringField('Логин', validators=[DataRequired()])
     password = PasswordField(
         'Пароль', 
@@ -55,17 +59,44 @@ class RegistrationForm(FlaskForm):
 
 class PostForm(FlaskForm):
     # Посты + валидность от фласка.
+
     body = TextAreaField("Есть новая заметка?", validators=[DataRequired()])
     submit = SubmitField('Запостить')
 
 
+class EditProfileForm(FlaskForm):
+    about = TextAreaField('Обо мне')
+    submit = SubmitField('Обновить')
+
+
+class ChangePasswordForm(FlaskForm):
+    old_password = PasswordField(
+        'Старый пароль', 
+        validators=[DataRequired()]
+    )
+    password = PasswordField(
+        'Новый пароль', 
+        validators=[
+            DataRequired(), 
+            EqualTo('password2', message='Пароли не совпадают.')
+        ]
+    )
+    password2 = PasswordField(
+        'Новый пароль ещё раз', 
+        validators=[DataRequired()]
+    )
+    submit = SubmitField('Сменить')
+
+
 class User(UserMixin, db.Model):
     # Подключение бд. типы данных для них и колонка users для всех юзеров.
+
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, index=True)
     password_hash = db.Column(db.String(128))
     posts = db.relationship('Post', backref='author', lazy='dynamic')
+    about = db.Column(db.Text)
 
     def __repr__(self):
         return '<User {}>'.format(self.username)
@@ -164,11 +195,11 @@ def login():
     form = LoginForm()
     # Проверка на правильность ввода форм. тож халявная функция
     if form.validate_on_submit():
-        user = User.query.filter_by(username=form.login.data).first()
+        user1 = User.query.filter_by(username=form.login.data).first()
         # если юзер реален ну не пуст и верификация пароля пройдена( хеш от этого пароля совпадает с
         # хешом в бд, который фласк генерит. То авторизируем
-        if user is not None and user.verify_password(form.password.data):
-            login_user(user, False)
+        if user1 is not None and user1.verify_password(form.password.data):
+            login_user(user1, False)
             return redirect(url_for('index'))
         # ну если сюда доходит то ошибка
         flash('Неправильный логин или пароль.')
@@ -191,9 +222,9 @@ def register():
     form = RegistrationForm()
     if form.validate_on_submit():
         # проверка фласком на правильность полей и указание если все ок то пароль логин создаем юзера
-        user = User(username=form.login.data, password=form.password.data)
+        user1 = User(username=form.login.data, password=form.password.data)
         # добавляем бд и коммитим, ну запоминаем типо сохранение.
-        db.session.add(user)
+        db.session.add(user1)
         db.session.commit()
         flash('Теперь вы можете войти.')
         return redirect(url_for('login'))
@@ -230,6 +261,35 @@ def edit_post(post_id):
     
     form.body.data = post.body
     return render_template('edit_post.html', form=form)
+
+
+@app.route('/user/<int:user_id>', methods=['GET', 'POST'])
+def user(user_id):
+    user1 = User.query.filter_by(id=user_id).first_or_404()
+    posts_count = Post.query.filter_by(author_id=user_id).count()
+    form = EditProfileForm()
+    if form.validate_on_submit():
+        user1.about = form.about.data
+        db.session.commit()
+        flash('Ваш профиль обновлён!')
+        return redirect(url_for('user', user_id=user_id))
+    return render_template('user.html', user=user1, posts_count=posts_count, form=form)
+
+
+@app.route('/change-password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    form = ChangePasswordForm()
+    if form.validate_on_submit():
+        if current_user.verify_password(form.old_password.data):
+            current_user.password = form.password.data
+            db.session.add(current_user)
+            db.session.commit()
+            flash('Ваш пароль изменён.')
+            return redirect(url_for('user', user_id=current_user.get_id()))
+        else:
+            flash('Ошибка пароля.')
+    return render_template("change_password.html", form=form)
 
 
 @login_manager.user_loader
